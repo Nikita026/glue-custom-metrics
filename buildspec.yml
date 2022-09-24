@@ -1,0 +1,35 @@
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - echo "Changing into source directory $CODEBUILD_SRC_DIR"
+      - cd $CODEBUILD_SRC_DIR
+      - echo Zip lambda function and lambda layer...
+      - zip -r "$Lambda" lambda
+      - zip -r "$LambdaLayer" aws_embedded_metrics
+  build:
+    commands:
+      - echo Uploading Lambda and  Layer zip file to S3 Bucket
+      - aws s3 sync . s3://"$S3_BUCKET"/  --exclude "*" --include "*.zip"
+      - echo Successfully uploaded Lambda and Lambda Layer to "$S3_BUCKET"
+  post_build:
+    commands:
+      - ls
+      - echo Deploying the CF
+      # - > 
+      #   aws cloudformation create-stack
+      #   --stack-name myGluejobsCustomMetrics 
+      #   --template-body file://GlueJobsCustomMetrics.yaml
+      #   --parameters 
+      #   ParameterKey="BucketName",ParameterValue="$S3_BUCKET" 
+      #   ParameterKey="ZipName",ParameterValue="$LambdaLayer"
+      #   ParameterKey="LambdaFile",ParameterValue="$Lambda"
+      #   ParameterKey="SNSRecipientEmail",ParameterValue="$SNSRecipientEmail"
+      #   --capabilities CAPABILITY_NAMED_IAM
+      - chmod +x create-update-stack.sh
+      - ./create-update-stack.sh myGluejobsCustomMetrics
+      - echo CF Deployment successful
+artifacts:
+  files:
+    - "**/*"
